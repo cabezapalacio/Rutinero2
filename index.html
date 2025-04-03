@@ -1,0 +1,223 @@
+
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Rutinero</title>
+  <style>
+    body {
+      font-family: sans-serif;
+      margin: 0;
+      padding: 0;
+      background-color: #ffffff;
+      color: #111;
+    }
+    header {
+      display: flex;
+      align-items: center;
+      background-color: #e30613;
+      padding: 10px;
+      color: white;
+      justify-content: center;
+      text-align: center;
+    }
+    header img {
+      height: 50px;
+      margin-right: 10px;
+    }
+    header h1 {
+      font-size: 2rem;
+      margin: 0;
+    }
+    .container {
+      padding: 20px;
+      text-align: center;
+    }
+    .dni-input {
+      margin-bottom: 20px;
+      font-size: 1.2rem;
+    }
+    #dni {
+      font-size: 1.2rem;
+      padding: 8px;
+      width: 200px;
+      margin-top: 8px;
+    }
+    .dni-input button {
+      font-size: 1.1rem;
+      padding: 8px 16px;
+      margin-left: 10px;
+      background-color: #e30613;
+      color: white;
+      border: none;
+      border-radius: 5px;
+      cursor: pointer;
+    }
+    .day {
+      border: 1px solid #ccc;
+      border-radius: 8px;
+      margin-bottom: 15px;
+      padding: 15px;
+      background: #f9f9f9;
+      text-align: left;
+    }
+    .exercise {
+      margin-bottom: 15px;
+    }
+    .exercise img {
+      max-width: 100%;
+      height: auto;
+      border-radius: 8px;
+    }
+    .comment, .timer, .check {
+      margin-top: 8px;
+    }
+    .timer-controls button {
+      margin-right: 5px;
+      background-color: #e30613;
+      color: white;
+      border: none;
+      padding: 6px 10px;
+      border-radius: 5px;
+      cursor: pointer;
+    }
+    .done {
+      background-color: #d4edda;
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <img src="https://upload.wikimedia.org/wikipedia/commons/5/57/Sport_Club_logo.png" alt="Logo" />
+    <h1>Rutinero</h1>
+  </header>
+  <div class="container">
+    <div class="dni-input">
+      <label for="dni">Ingresá tu DNI:</label><br />
+      <input type="text" id="dni" />
+      <button onclick="buscarRutina()">Buscar</button>
+    </div>
+    <div id="rutina"></div>
+  </div>
+
+  <audio id="beep" src="https://www.soundjay.com/button/beep-07.wav"></audio>
+
+  <script>
+    const rutinaEjemplo = {
+      "12345678": {
+        "Lunes": [{
+          nombre: "Press de banca",
+          series: 4,
+          repeticiones: 10,
+          descanso: 60,
+          gif: "https://media.giphy.com/media/3ohs4BSacFKI7A717y/giphy.gif"
+        }],
+        "Martes": [{
+          nombre: "Remo con barra",
+          series: 4,
+          repeticiones: 12,
+          descanso: 60,
+          gif: "https://media.giphy.com/media/LmNwrBhejkK9EFP504/giphy.gif"
+        }],
+        "Miércoles": [{
+          nombre: "Sentadillas",
+          series: 4,
+          repeticiones: 15,
+          descanso: 90,
+          gif: "https://media.giphy.com/media/26tn33aiTi1jkl6H6/giphy.gif"
+        }],
+        "Jueves": [{
+          nombre: "Curl de bíceps",
+          series: 3,
+          repeticiones: 12,
+          descanso: 45,
+          gif: "https://media.giphy.com/media/3o7TKP3t9zx3f2XmJq/giphy.gif"
+        }],
+        "Viernes": [{
+          nombre: "Elevaciones laterales",
+          series: 3,
+          repeticiones: 15,
+          descanso: 45,
+          gif: "https://media.giphy.com/media/26xBwdIuRJiAIqHwA/giphy.gif"
+        }],
+      }
+    };
+
+    function buscarRutina() {
+      const dni = document.getElementById("dni").value;
+      const contenedor = document.getElementById("rutina");
+      contenedor.innerHTML = "";
+      if (!rutinaEjemplo[dni]) {
+        contenedor.innerHTML = "<p>No se encontró una rutina para ese DNI.</p>";
+        return;
+      }
+      const rutina = rutinaEjemplo[dni];
+      for (let dia in rutina) {
+        const ejercicios = rutina[dia];
+        const diaDiv = document.createElement("div");
+        diaDiv.className = "day";
+        diaDiv.innerHTML = `<h2>${dia}</h2>`;
+
+        ejercicios.forEach((ejer, i) => {
+          const exDiv = document.createElement("div");
+          exDiv.className = "exercise";
+          exDiv.innerHTML = `
+            <h3>${ejer.nombre}</h3>
+            <img src="${ejer.gif}" alt="${ejer.nombre}" />
+            <p><strong>Series:</strong> ${ejer.series} | <strong>Reps:</strong> ${ejer.repeticiones}</p>
+            <div class="check">
+              <label><input type="checkbox" onchange="this.closest('.exercise').classList.toggle('done')" /> Marcar como hecho</label>
+            </div>
+            <div class="comment">
+              <label>Comentarios:</label>
+              <textarea rows="2" style="width:100%;" onchange="guardarComentario('${dni}','${dia}',${i},this.value)">${cargarComentario(dni,dia,i)}</textarea>
+            </div>
+            <div class="timer">
+              <p><strong>Temporizador:</strong></p>
+              <div class="timer-controls">
+                <button onclick="iniciarTimer(this, ${ejer.descanso})">${ejer.descanso}s</button>
+                <label><input type="checkbox" checked onchange="toggleSonido(this)"> Sonido</label>
+              </div>
+              <p class="timer-display"></p>
+            </div>
+          `;
+          diaDiv.appendChild(exDiv);
+        });
+        contenedor.appendChild(diaDiv);
+      }
+    }
+
+    function iniciarTimer(btn, segundos) {
+      const timerDisplay = btn.closest(".timer").querySelector(".timer-display");
+      let tiempo = segundos;
+      timerDisplay.textContent = `${tiempo} segundos`;
+      const sonidoActivo = btn.closest(".timer").querySelector("input[type='checkbox']").checked;
+
+      const intervalo = setInterval(() => {
+        tiempo--;
+        timerDisplay.textContent = `${tiempo} segundos`;
+        if (tiempo <= 0) {
+          clearInterval(intervalo);
+          timerDisplay.textContent = "¡Descanso finalizado!";
+          timerDisplay.style.backgroundColor = "#ffeaa7";
+          if (sonidoActivo) document.getElementById("beep").play();
+        }
+      }, 1000);
+    }
+
+    function toggleSonido(checkbox) {
+    }
+
+    function guardarComentario(dni, dia, index, texto) {
+      const key = `comentario-${dni}-${dia}-${index}`;
+      localStorage.setItem(key, texto);
+    }
+
+    function cargarComentario(dni, dia, index) {
+      const key = `comentario-${dni}-${dia}-${index}`;
+      return localStorage.getItem(key) || "";
+    }
+  </script>
+</body>
+</html>
