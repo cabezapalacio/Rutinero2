@@ -1,0 +1,178 @@
+
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Rutinero - Panel Admin</title>
+  <style>
+    body {
+      font-family: sans-serif;
+      background-color: #f7f7f7;
+      margin: 0;
+      padding: 0;
+    }
+    header {
+      background-color: #e30613;
+      color: white;
+      text-align: center;
+      padding: 1rem;
+    }
+    .container {
+      max-width: 900px;
+      margin: auto;
+      padding: 20px;
+    }
+    input, select, textarea {
+      padding: 8px;
+      margin: 4px 0;
+      width: 100%;
+      box-sizing: border-box;
+    }
+    .day-section {
+      border: 1px solid #ccc;
+      border-radius: 8px;
+      background: white;
+      padding: 15px;
+      margin-top: 20px;
+    }
+    .exercise-block {
+      border-top: 1px solid #eee;
+      margin-top: 15px;
+      padding-top: 10px;
+    }
+    button {
+      padding: 10px 15px;
+      background-color: #e30613;
+      color: white;
+      border: none;
+      border-radius: 5px;
+      cursor: pointer;
+      margin-top: 10px;
+    }
+    h2 {
+      margin-bottom: 0.5rem;
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>Rutinero - Panel de Profesores</h1>
+  </header>
+  <div class="container">
+    <label for="dni">DNI del Socio:</label>
+    <input type="text" id="dni" placeholder="Ej: 12345678"/>
+    <button onclick="cargarRutina()">Cargar Rutina</button>
+    <div id="rutinaContainer"></div>
+    <button onclick="guardarRutina()">💾 Guardar Rutina</button>
+  </div>
+
+  <script>
+    const ejerciciosDisponibles = [
+      {
+        nombre: "Press de banca",
+        grupo: "Pecho",
+        gif: "https://media.giphy.com/media/3ohs4BSacFKI7A717y/giphy.gif"
+      },
+      {
+        nombre: "Remo con barra",
+        grupo: "Espalda",
+        gif: "https://media.giphy.com/media/LmNwrBhejkK9EFP504/giphy.gif"
+      },
+      {
+        nombre: "Sentadillas",
+        grupo: "Piernas",
+        gif: "https://media.giphy.com/media/26tn33aiTi1jkl6H6/giphy.gif"
+      },
+      {
+        nombre: "Curl de bíceps",
+        grupo: "Brazos",
+        gif: "https://media.giphy.com/media/3o7TKP3t9zx3f2XmJq/giphy.gif"
+      },
+      {
+        nombre: "Elevaciones laterales",
+        grupo: "Hombros",
+        gif: "https://media.giphy.com/media/26xBwdIuRJiAIqHwA/giphy.gif"
+      }
+    ];
+
+    const diasSemana = ["Lunes", "Martes", "Miércoles", "Jueves", "Viernes"];
+
+    function cargarRutina() {
+      const dni = document.getElementById("dni").value;
+      const rutinaGuardada = localStorage.getItem("rutina-" + dni);
+      const rutina = rutinaGuardada ? JSON.parse(rutinaGuardada) : {};
+      const container = document.getElementById("rutinaContainer");
+      container.innerHTML = "";
+
+      diasSemana.forEach(dia => {
+        const diaDiv = document.createElement("div");
+        diaDiv.className = "day-section";
+        diaDiv.innerHTML = `<h2>${dia}</h2><div id="ejercicios-${dia}"></div><button onclick="agregarEjercicio('${dia}')">➕ Agregar Ejercicio</button>`;
+        container.appendChild(diaDiv);
+
+        const ejercicios = rutina[dia] || [];
+        ejercicios.forEach((e, idx) => agregarEjercicio(dia, e));
+      });
+    }
+
+    function agregarEjercicio(dia, datos = null) {
+      const contenedor = document.getElementById("ejercicios-" + dia);
+      const bloque = document.createElement("div");
+      bloque.className = "exercise-block";
+
+      const ejercicioHTML = `
+        <label>Ejercicio:</label>
+        <select onchange="actualizarGIF(this)">
+          ${ejerciciosDisponibles.map(ej => `<option value="${ej.nombre}" ${datos && datos.nombre === ej.nombre ? "selected" : ""}>${ej.nombre}</option>`).join("")}
+        </select>
+        <label>Series:</label>
+        <input type="number" value="${datos ? datos.series : 3}" />
+        <label>Repeticiones:</label>
+        <input type="number" value="${datos ? datos.repeticiones : 12}" />
+        <label>Descanso (segundos):</label>
+        <input type="number" value="${datos ? datos.descanso : 60}" />
+        <label>URL del GIF:</label>
+        <input type="text" value="${datos ? datos.gif : ''}" />
+      `;
+      bloque.innerHTML = ejercicioHTML;
+      contenedor.appendChild(bloque);
+    }
+
+    function actualizarGIF(select) {
+      const selected = ejerciciosDisponibles.find(ej => ej.nombre === select.value);
+      const inputs = select.parentElement.querySelectorAll("input");
+      if (selected && inputs.length >= 4) {
+        inputs[3].value = selected.gif;
+      }
+    }
+
+    function guardarRutina() {
+      const dni = document.getElementById("dni").value;
+      if (!dni) {
+        alert("Ingresá un DNI válido.");
+        return;
+      }
+      const rutina = {};
+      diasSemana.forEach(dia => {
+        const ejercicios = [];
+        const bloques = document.querySelectorAll(`#ejercicios-${dia} .exercise-block`);
+        bloques.forEach(b => {
+          const select = b.querySelector("select");
+          const inputs = b.querySelectorAll("input");
+          ejercicios.push({
+            nombre: select.value,
+            series: parseInt(inputs[0].value),
+            repeticiones: parseInt(inputs[1].value),
+            descanso: parseInt(inputs[2].value),
+            gif: inputs[3].value
+          });
+        });
+        rutina[dia] = ejercicios;
+      });
+      localStorage.setItem("rutina-" + dni, JSON.stringify(rutina));
+      alert("✅ Rutina guardada para el DNI " + dni);
+    }
+  </script>
+</body>
+</html>
